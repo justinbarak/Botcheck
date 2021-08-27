@@ -36,7 +36,7 @@ def send_notification(content):
     email = secrets.email
     pas = secrets.password
 
-    sms_gateway = '6308180119@tmomail.net'
+    sms_gateway = secrets.phone_target + '@tmomail.net'
     # The server we use to send emails in our case it will be gmail but every email provider has a different smtp 
     # and port is also provided by the email provider.
     smtp = "smtp.gmail.com" 
