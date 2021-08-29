@@ -90,7 +90,7 @@ def check_inventory():
     page_html = get_page_html()
     if check_item_in_stock(page_html):
         send_notification(
-            ("In Stock", "Gopowerbike Battery is now in stock"), secrets.phone_target
+            ("In Stock", "Gopowerbike Battery is now in stock"), secrets.phone_target2
         )
         exit()  # Terminate
     else:
@@ -145,7 +145,7 @@ def main():
             "Botcheck Running",
             "You will be notified when Gopowerbike Battery is back in stock.",
         ),
-        secrets.phone_target,
+        secrets.phone_target2,
     )
 
     while True:
