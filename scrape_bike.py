@@ -4,8 +4,10 @@
 This is a short program to scrape the gopowerbike website and determine if an item is in stock
 
 Future functionality desired:
-
-
+ -tell if client has been text about an item initially, not doing it again, maybe pickle? json?
+ -better error handling
+ -alt: check if there's a network connection before attempting to run the script and failing
+ -move secrets.py info to environmental variables
 """
 
 import secrets
@@ -140,13 +142,13 @@ def main():
     daily_failures = 0
 
     # as requested by client send initialization text
-    send_notification(
-        (
-            "Botcheck Running",
-            "You will be notified when Gopowerbike Battery is back in stock.",
-        ),
-        secrets.phone_target2,
-    )
+    # send_notification(
+    #     (
+    #         "Botcheck Running",
+    #         "You will be notified when Gopowerbike Battery is back in stock.",
+    #     ),
+    #     secrets.phone_target2,
+    # )
 
     while True:
         global utc_now
@@ -158,6 +160,7 @@ def main():
             update()
         # attempt to notify me if/when something breaks
         except Exception as inst:
+            print(inst.args)
             send_notification(
                 (
                     "Gopowerbike Battery Error",
