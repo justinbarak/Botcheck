@@ -7,26 +7,17 @@ import threading
 cwd = os.getcwd()
 
 scripts = [
-    r"/home/pi/PythonProjects/Botcheck/bike.sh",
-    r"/home/pi/PythonProjects/Botcheck/micro.sh",
+    r"/home/pi/PythonProjects/Botcheck/scrapemicrosoft.py",
+    r"/home/pi/PythonProjects/Botcheck/scrape_bike.py",
 ]
 
 
 def launch_script(script: str):
-    commands = [
-        r"bash",
-        r"-i",  # leaving off -x option for now
-        script,
-        "shell=True",
-        "stdin=PIPE",
-        "stdout=PIPE",
-        "stderr=PIPE",
-        "cwd=" + cwd,
-        "start_new_session=True",
-        "universal_newlines=True",
-    ]
-    pro = subprocess.run(commands)
-    print(pro.returncode)
+    # os.system(script)
+    # exec(open(script).read())
+    request = "chmod +x " + script + "; python3 " + script
+    subprocess.call(request, shell=True)
+    return None
 
 
 # Thread objects
