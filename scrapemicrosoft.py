@@ -9,7 +9,8 @@ Rev1-added a daily text to confirm bot is still runnning
 Future functionality desired:
  -better error handling
  -alt: check if there's a network connection before attempting to run the script and failing
- -move secrets.py info to environmental variables
+ -move secrets.py info to environmental variables (lowest priority)
+ -incorporate async and await
  Xremove global variables
  Xcalculate delay instead of assuming 600 seconds, calc time to next X min increment 
 """
