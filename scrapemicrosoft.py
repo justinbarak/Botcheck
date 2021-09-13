@@ -8,21 +8,19 @@ Rev1-added a daily text to confirm bot is still runnning
 
 Future functionality desired:
  -better error handling
+ -tell if client has been text about an item initially, not doing it again, maybe pickle? json?
  -alt: check if there's a network connection before attempting to run the script and failing
  -move secrets.py info to environmental variables (lowest priority)
- -incorporate async and await
+ Xincorporate threading
  Xremove global variables
  Xcalculate delay instead of assuming 600 seconds, calc time to next X min increment 
 """
 
 import json
 import re
-import secrets
-import smtplib
 import time
 from datetime import datetime, timedelta
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from send_text import send_text
 
 import pytz
 import requests
@@ -30,83 +28,52 @@ from bs4 import BeautifulSoup
 
 # constants
 UPDATE_INTERVAL = 5  # in minutes
+NOTIFICATION_NAME = 'Ryzen Laptop'
 
 
 def time_to_send_daily_update(factors: dict):
     if (factors.get("cst_now").hour == 18) and (
         factors.get("cst_now").minute < UPDATE_INTERVAL
     ):
-        # factors.update({'daily_update_sent': True})
         return True
     else:
-        # if factors.get('cst_now').hour == 0:
-        #     factors.update({'daily_update_sent': False})
         return False
 
 
-def send_notification(content):
-    email = secrets.email
-    pas = secrets.password
-
-    sms_gateway = secrets.phone_target + "@tmomail.net"
-    # The server we use to send emails in our case it will be gmail but every email provider has a different smtp
-    # and port is also provided by the email provider.
-    smtp = "smtp.gmail.com"
-    port = 587
-    # This will start our email server
-    server = smtplib.SMTP(smtp, port)
-    # Starting the server
-    server.starttls()
-    # Now we need to login
-    server.login(email, pas)
-
-    # Now we use the MIME module to structure our message.
-    msg = MIMEMultipart()
-    msg["From"] = email
-    msg["To"] = sms_gateway
-    # Make sure you add a new line in the subject
-    msg["Subject"] = content[0] + "\n"
-    # Make sure you also add new lines to your body
-    body = content[1] + "\n"
-    # and then attach that body furthermore you can also send html content.
-    msg.attach(MIMEText(body, "plain"))
-
-    sms = msg.as_string()
-
-    server.sendmail(email, sms_gateway, sms)
-
-    # lastly quit the server
-    server.quit()
-
-
 def update(factors: dict):
-    # send the 10 minute update to screen
+    # send the UPDATE_INTERVAL minute update to screen
     # check if it's time to send the daily text, send if it is
     print("Checked at ", factors.get("cst_now").strftime(r"%m/%d %I:%M %p"))
     if time_to_send_daily_update(factors):
         days_running = (factors.get("cst_now") - factors.get("time_started")).days
         content = (
             "Daily Update",
-            f"Botcheck has been running for {days_running} days, still not in stock.",
+            f"Microsoft Botcheck has been running for {days_running} days, still not in stock.",
         )
-        send_notification(content)
+        try:
+            send_text(content)
+        except:
+            print(f"There was an error sending this text: {content}")
         if factors.get("daily_failures") > 0:
-            content = (
-                f"Botcheck has encountered {factors.get('daily_failures')} errors."
-            )
-            send_notification(content)
+            content = f"Microsoft Botcheck has encountered {factors.get('daily_failures')} errors."
+            try:
+                send_text(content)
+            except:
+                print(f"There was an error sending this text: {content}")
             factors.update({"daily_failures": 0})
+        return None
 
 
 def check_inventory(factors: dict):
-    page_html = get_page_html(factors)
-    if check_item_in_stock(page_html, factors):
-        send_notification(
-            ("In Stock", "Windows Surface Laptop 4 with Ryzen now in stock")
-        )
-        exit()  # Terminate
-    else:
-        print("Out of stock still")
+    try:
+        page_html = get_page_html(factors)
+        if check_item_in_stock(page_html, factors):
+            send_text(("In Stock", "Windows Surface Laptop 4 with Ryzen now in stock"))
+            exit()  # Terminate
+        else:
+            print("Out of stock still")
+    except:
+        print(f'There was an error in checking for {NOTIFICATION_NAME} at {factors.get('cst_now').strftime(r"%m/%d %I:%M %p")}.')
     return None
 
 
@@ -122,7 +89,7 @@ def get_page_html(factors: dict):
     return page.content
 
 
-def is_Ryzen7_and_15in(description, factors: dict):
+def is_Ryzen7_and_15in(description: str, factors: dict):
     good = re.compile(
         r"15.+?AMD Ryzen.+?4980U, 16GB RAM, 512GB SSD.*?",
         flags=re.IGNORECASE | re.DOTALL,
@@ -146,20 +113,14 @@ def check_item_in_stock(page_html, factors: dict):
     # print('How many buttons total?', len(buttons))
     result = list()
     for button in buttons:
-        # print('as button:', button)
         b_soup = BeautifulSoup(str(button), "html.parser")
-        # print('as button soup:', b_soup.button)
         button_dict = b_soup.button.attrs
-        # print('as dict:', button_dict)
         button_dict = json.loads(button_dict["data-skuinfo"])
-        # print(button_dict)
         for computer in button_dict:
-            # print(button_dict[computer])
             heading = button_dict[computer]["Heading"]
             stock = button_dict[computer]["IsOutOfStock"]
             if is_Ryzen7_and_15in(heading, factors):
                 result.append(stock)
-    # print(bool(sum(result * 1)))
     return bool(sum(result * 1))
 
 
@@ -176,7 +137,6 @@ def main():
     factors["time_started"] = pytz.utc.localize(datetime.utcnow()).astimezone(
         pytz.timezone("America/Chicago")
     )
-    factors["daily_update_sent"] = False
     factors["daily_failures"] = 0
 
     while True:

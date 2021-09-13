@@ -11,15 +11,14 @@ Future functionality desired:
 """
 
 import secrets
-import smtplib
 import time
 from datetime import datetime, timedelta
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 import pytz
 import requests
 from bs4 import BeautifulSoup
+
+from send_text import send_text
 
 
 def time_to_send_daily_update():
@@ -35,41 +34,6 @@ def time_to_send_daily_update():
         return False
 
 
-def send_notification(content, target=secrets.phone_target):
-    email = secrets.email
-    pas = secrets.password
-
-    sms_gateway = target + "@tmomail.net"
-    # The server we use to send emails in our case it will be gmail but every email provider has a different smtp
-    # and port is also provided by the email provider.
-    smtp = "smtp.gmail.com"
-    port = 587
-    # This will start our email server
-    server = smtplib.SMTP(smtp, port)
-    # Starting the server
-    server.starttls()
-    # Now we need to login
-    server.login(email, pas)
-
-    # Now we use the MIME module to structure our message.
-    msg = MIMEMultipart()
-    msg["From"] = email
-    msg["To"] = sms_gateway
-    # Make sure you add a new line in the subject
-    msg["Subject"] = content[0] + "\n"
-    # Make sure you also add new lines to your body
-    body = content[1] + "\n"
-    # and then attach that body furthermore you can also send html content.
-    msg.attach(MIMEText(body, "plain"))
-
-    sms = msg.as_string()
-
-    server.sendmail(email, sms_gateway, sms)
-
-    # lastly quit the server
-    server.quit()
-
-
 def update():
     global daily_failures
     # send the 10 minute update to screen
@@ -81,17 +45,17 @@ def update():
             "Daily Update",
             f"Botcheck for Bike Battery has been running for {days_running} days, still not in stock.",
         )
-        send_notification(content)
+        send_text(content)
         if daily_failures > 0:
             content = f"Botcheck has encountered {daily_failures} errors."
-            send_notification(content)
+            send_text(content)
             daily_failures = 0
 
 
 def check_inventory():
     page_html = get_page_html()
     if check_item_in_stock(page_html):
-        send_notification(
+        send_text(
             ("In Stock", "Gopowerbike Battery is now in stock"), secrets.phone_target2
         )
         exit()  # Terminate
@@ -142,7 +106,7 @@ def main():
     daily_failures = 0
 
     # as requested by client send initialization text
-    # send_notification(
+    # send_text(
     #     (
     #         "Botcheck Running",
     #         "You will be notified when Gopowerbike Battery is back in stock.",
@@ -161,7 +125,7 @@ def main():
         # attempt to notify me if/when something breaks
         except Exception as inst:
             print(inst.args)
-            send_notification(
+            send_text(
                 (
                     "Gopowerbike Battery Error",
                     str(inst.args),
