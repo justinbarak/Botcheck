@@ -129,7 +129,7 @@ def check_item_in_stock(page_html, factors: dict):
 
 
 def calc_delay(factors: dict) -> float:
-    update_time()
+    update_time(factors)
     delay = (
         (factors["cst_now"].minute // UPDATE_INTERVAL) * UPDATE_INTERVAL
         + UPDATE_INTERVAL
@@ -151,7 +151,7 @@ def main():
     factors["daily_failures"] = 0
 
     while True:
-        update_time()
+        update_time(factors)
         check_inventory(factors)
         update(factors)
 
