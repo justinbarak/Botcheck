@@ -7,7 +7,7 @@ Rev1-added a daily text to confirm bot is still runnning
     -added a text on errors
 
 Future functionality desired:
- -better error handling
+ Xbetter error handling
  -tell if client has been text about an item initially, not doing it again, maybe pickle? json?
  -alt: check if there's a network connection before attempting to run the script and failing
  -move secrets.py info to environmental variables (lowest priority)
@@ -28,7 +28,7 @@ from bs4 import BeautifulSoup
 
 # constants
 UPDATE_INTERVAL = 5  # in minutes
-NOTIFICATION_NAME = 'Ryzen Laptop'
+NOTIFICATION_NAME = "Ryzen Laptop"
 
 
 def time_to_send_daily_update(factors: dict):
@@ -61,7 +61,7 @@ def update(factors: dict):
             except:
                 print(f"There was an error sending this text: {content}")
             factors.update({"daily_failures": 0})
-        return None
+    return None
 
 
 def check_inventory(factors: dict):
@@ -71,9 +71,14 @@ def check_inventory(factors: dict):
             send_text(("In Stock", "Windows Surface Laptop 4 with Ryzen now in stock"))
             exit()  # Terminate
         else:
-            print("Out of stock still")
-    except:
-        print(f'There was an error in checking for {NOTIFICATION_NAME} at {factors.get('cst_now').strftime(r"%m/%d %I:%M %p")}.')
+            print(f"{NOTIFICATION_NAME} Out of stock still")
+    except Exception as error:
+        print(
+            f"There was an error in checking for {NOTIFICATION_NAME} at ",
+            f'{factors.get("cst_now").strftime(r"%m/%d %I:%M %p")}.\n',
+            error.args,
+        )
+        factors["daily_failures"] += 1
     return None
 
 
@@ -83,9 +88,8 @@ def get_page_html(factors: dict):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
     }
     page = requests.get(url, headers=headers)
-    # print("status Code", page.status_code)
     if page.status_code != 200:
-        factors["daily_failures"] += 1
+        raise RuntimeError(f"While looking up html, page result was {page.status_code}")
     return page.content
 
 
@@ -125,11 +129,18 @@ def check_item_in_stock(page_html, factors: dict):
 
 
 def calc_delay(factors: dict) -> float:
+    update_time()
     delay = (
         (factors["cst_now"].minute // UPDATE_INTERVAL) * UPDATE_INTERVAL
         + UPDATE_INTERVAL
     ) * 60 - (factors["cst_now"].minute * 60 + factors["cst_now"].second)
     return delay
+
+
+def update_time(factors: dict):
+    factors["utc_now"] = pytz.utc.localize(datetime.utcnow())
+    factors["cst_now"] = factors["utc_now"].astimezone(pytz.timezone("America/Chicago"))
+    return None
 
 
 def main():
@@ -140,10 +151,7 @@ def main():
     factors["daily_failures"] = 0
 
     while True:
-        factors["utc_now"] = pytz.utc.localize(datetime.utcnow())
-        factors["cst_now"] = factors["utc_now"].astimezone(
-            pytz.timezone("America/Chicago")
-        )
+        update_time()
         check_inventory(factors)
         update(factors)
 
