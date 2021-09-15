@@ -1,20 +1,12 @@
 # -*- coding: utf-8 -*-
-"""ScrapeMicrosoft_rev1.py
+"""scrapemicrosoft.py
 
 This is a short program to scrape microsoft website and determine if an item is in stock
 
-Rev1-added a daily text to confirm bot is still runnning
-    -added a text on errors
-
 Future functionality desired:
- Xbetter error handling
  -tell if client has been text about an item initially, not doing it again, maybe pickle? json?
- -alt: check if there's a network connection before attempting to run the script and failing
  -move secrets.py info to environmental variables (lowest priority)
- Xincorporate threading
- Xremove global variables
- Xcalculate delay instead of assuming 600 seconds, calc time to next X min increment 
-"""
+ """
 
 import json
 import re
@@ -74,6 +66,7 @@ def check_inventory(factors: dict):
             print(f"{NOTIFICATION_NAME} Out of stock still")
     except Exception as error:
         print(
+            f"{NOTIFICATION_NAME}\n",
             f"There was an error in checking for {NOTIFICATION_NAME} at ",
             f'{factors.get("cst_now").strftime(r"%m/%d %I:%M %p")}.\n',
             error.args,
@@ -157,7 +150,7 @@ def main():
 
         # check how long until next update increment
         delay = calc_delay(factors)
-        print(delay)
+        # print(delay)
         time.sleep(delay)  # wait for the delay and try again
 
 
