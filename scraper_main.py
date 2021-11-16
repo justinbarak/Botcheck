@@ -7,7 +7,7 @@ import threading
 cwd = os.getcwd()
 
 scripts = [
-    r"/home/pi/PythonProjects/Botcheck/scrapemicrosoft.py",
+    # r"/home/pi/PythonProjects/Botcheck/scrapemicrosoft.py",
     r"/home/pi/PythonProjects/Botcheck/scrape_bike.py",
 ]
 

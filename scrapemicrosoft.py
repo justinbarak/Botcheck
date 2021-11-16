@@ -92,8 +92,9 @@ def is_Ryzen7_and_15in(description: str, factors: dict):
         flags=re.IGNORECASE | re.DOTALL,
     )
     result = good.search(description)
+    print(description, result)
     if not (type(result) == type(None)):
-        # print("Result matching:", result)
+        print("Result matching:", result)
         if result == None:
             factors["daily_failures"] += 1
         return True
@@ -116,8 +117,10 @@ def check_item_in_stock(page_html, factors: dict):
         for computer in button_dict:
             heading = button_dict[computer]["Heading"]
             stock = button_dict[computer]["IsOutOfStock"]
+            # print(heading, stock)
             if is_Ryzen7_and_15in(heading, factors):
-                result.append(stock)
+                result.append(not (bool(stock)))
+    print(result)
     return bool(sum(result * 1))
 
 

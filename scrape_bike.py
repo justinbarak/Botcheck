@@ -54,7 +54,7 @@ def check_inventory(factors: dict):
             )
             exit()  # Terminate
         else:
-            print("Out of stock still")
+            print(f"{NOTIFICATION_NAME} Out of stock still")
     except Exception as error:
         print(
             f"{NOTIFICATION_NAME}\n",
