@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-"""scrape_bike.py
+"""scrape_antenna.py
 
-This is a short program to scrape the gopowerbike website and determine if an item is in stock
 
 """
 
@@ -15,9 +14,17 @@ import pytz
 import requests
 from bs4 import BeautifulSoup
 
+from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.utils import ChromeType
+from selenium.webdriver.chrome.options import Options
+import logging
+
+# from selenium.webdriver.remote.remote_connection import LOGGER
+
 # constants
-UPDATE_INTERVAL = 5  # in minutes
-NOTIFICATION_NAME = "GoPowerBike Battery"
+UPDATE_INTERVAL = 4  # in minutes
+NOTIFICATION_NAME = "McGill 9dBi Antenna"
 
 
 def update(factors: dict):
@@ -28,14 +35,18 @@ def update(factors: dict):
         days_running = (factors.get("cst_now") - factors.get("time_started")).days
         content = (
             "Daily Update",
-            f"Go Powerbike Botcheck has been running for {days_running} days, still not in stock.",
+            f"Antenna-check has been running for {days_running} days, still not in"
+            " stock.",
         )
         try:
             send_text(content)
         except:
             print(f"There was an error sending this text: {content}")
         if factors.get("daily_failures") > 0:
-            content = f"{NOTIFICATION_NAME} Botcheck has encountered {factors.get('daily_failures')} errors."
+            content = (
+                f"{NOTIFICATION_NAME} Botcheck has encountered"
+                f" {factors.get('daily_failures')} errors."
+            )
             try:
                 send_text(content)
             except:
@@ -49,8 +60,12 @@ def check_inventory(factors: dict):
         page_html = get_page_html(factors)
         if check_item_in_stock(page_html, factors):
             send_text(
-                ("In Stock", "Gopowerbike Battery is now in stock"),
+                ("In Stock", f"{NOTIFICATION_NAME} is now in stock"),
                 secrets.phone_target2,
+            )
+            send_text(
+                ("In Stock", f"{NOTIFICATION_NAME} is now in stock"),
+                secrets.phone_target,
             )
             exit()  # Terminate
         else:
@@ -68,27 +83,42 @@ def check_inventory(factors: dict):
 
 def get_page_html(factors: dict):
     global daily_failures
-    url = "https://gopowerbike.com/collections/batteries/products/battery-1"
+    url = (
+        "https://fiz-tech.net/products/9-dbi-tuned-antenna-us-915?variant=41669770608893"
+    )
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 Safari/537.36"
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like"
+            " Gecko) Chrome/83.0.4103.116 Safari/537.36"
+        )
     }
-    page = requests.get(url, headers=headers)
-    if page.status_code != 200:
-        raise RuntimeError(f"While looking up html, page result was {page.status_code}")
-    return page.content
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    logging.getLogger("selenium").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    driver = webdriver.Chrome(
+        ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install(),
+        options=chrome_options,
+    )
+    driver.get(url)
+    time.sleep(5)
+    try:
+        page = driver.page_source
+        driver.close()
+        return page
+    except:
+        raise RuntimeError(f"While looking up html, an error was encountered.")
 
 
 def check_item_in_stock(page_html, factors: dict):
     soup = BeautifulSoup(page_html, "html.parser")
-    buttons = soup.findAll("button", {"id": "AddToCart-product-template"})
-    # "id": "AddToCart-product-template"
-    for button in buttons:
-        b_soup = BeautifulSoup(str(button), "html.parser")
-        button_dict = b_soup.button.attrs
-        button_dict = button_dict.get("disabled", "")
-        if button_dict != "disabled":
-            return True
-    return False
+    spans = soup.findAll("span", {"id": "AddToCartText"})
+    if len(spans) != 1:
+        raise RuntimeError(f"{NOTIFICATION_NAME} could not find AddToCartText button")
+    if "Sold Out" in spans[0]:
+        return False
+    return True
 
 
 def main():
