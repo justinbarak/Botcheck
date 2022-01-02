@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.utils import ChromeType
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import logging
 
@@ -72,7 +73,7 @@ def check_inventory(factors: dict):
             print(f"{NOTIFICATION_NAME} Out of stock still")
     except Exception as error:
         print(
-            f"{NOTIFICATION_NAME}\n",
+            f"{NOTIFICATION_NAME}\n{error}\n",
             f"There was an error in checking for {NOTIFICATION_NAME} at ",
             f'{factors.get("cst_now").strftime(r"%m/%d %I:%M %p")}.\n',
             error.args,
@@ -94,11 +95,13 @@ def get_page_html(factors: dict):
     }
     chrome_options = Options()
     chrome_options.add_argument("--headless")
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    chrome_options.add_argument("--no-sandbox")
+    # chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
     logging.getLogger("selenium").setLevel(logging.WARNING)
     logging.getLogger("urllib3").setLevel(logging.WARNING)
+    s = Service("/usr/lib/chromium-browser/chromedriver")
     driver = webdriver.Chrome(
-        ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install(),
+        service=s,
         options=chrome_options,
     )
     driver.get(url)
